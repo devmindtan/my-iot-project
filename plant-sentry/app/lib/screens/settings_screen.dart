@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  const SettingsScreen({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -12,7 +19,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _autoWaterGlobal = false;
-  bool _darkMode = false;
   double _alertThreshold = 40;
   String _unit = 'Celsius';
 
@@ -142,19 +148,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SectionHeader(icon: Icons.palette_outlined, title: 'Hiển thị'),
           _SettingsCard(
             children: [
-              _SwitchTile(
+              _SelectTile(
                 icon: Icons.dark_mode_outlined,
                 iconColor: Colors.indigo.shade400,
-                title: 'Giao diện tối',
-                subtitle: 'Chuyển sang dark mode',
-                value: _darkMode,
-                onChanged: (v) => setState(() => _darkMode = v),
+                title: 'Chế độ giao diện',
+                subtitle: 'System / Light / Dark',
+                value: _themeModeLabel(widget.themeMode),
+                options: const ['System', 'Light', 'Dark'],
+                onChanged: (modeLabel) {
+                  final mode = _themeModeFromLabel(modeLabel);
+                  widget.onThemeModeChanged(mode);
+                  setState(() {});
+                },
               ),
               _Divider(),
               _SelectTile(
                 icon: Icons.thermostat_outlined,
                 iconColor: Colors.orange.shade600,
                 title: 'Đơn vị nhiệt độ',
+                subtitle: '',
                 value: _unit,
                 options: const ['Celsius', 'Fahrenheit'],
                 onChanged: (v) => setState(() => _unit = v),
@@ -246,6 +258,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System';
+    }
+  }
+
+  ThemeMode _themeModeFromLabel(String label) {
+    switch (label) {
+      case 'Light':
+        return ThemeMode.light;
+      case 'Dark':
+        return ThemeMode.dark;
+      case 'System':
+      default:
+        return ThemeMode.system;
+    }
+  }
 }
 
 // ─────────────────────────────────────────
@@ -310,20 +345,22 @@ class _Divider extends StatelessWidget {
   }
 }
 
-class _SwitchTile extends StatelessWidget {
+class _SelectTile extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String title;
   final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String> onChanged;
 
-  const _SwitchTile({
+  const _SelectTile({
     required this.icon,
     required this.iconColor,
     required this.title,
     required this.subtitle,
     required this.value,
+    required this.options,
     required this.onChanged,
   });
 
@@ -351,10 +388,19 @@ class _SwitchTile extends StatelessWidget {
               ],
             ),
           ),
-          Switch(
+          DropdownButton<String>(
             value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.green,
+            underline: const SizedBox(),
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            items: options
+                .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                .toList(),
+            onChanged: (v) {
+              if (v != null) onChanged(v);
+            },
           ),
         ],
       ),
@@ -422,22 +468,23 @@ class _NavTile extends StatelessWidget {
   }
 }
 
-class _SelectTile extends StatelessWidget {
+class _SwitchTile extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String title;
-  final String value;
-  final List<String> options;
-  final ValueChanged<String> onChanged;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
-  const _SelectTile({
+  const _SwitchTile({
     required this.icon,
     required this.iconColor,
     required this.title,
+    required this.subtitle,
     required this.value,
-    required this.options,
     required this.onChanged,
   });
+
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -448,24 +495,25 @@ class _SelectTile extends StatelessWidget {
           _IconBox(icon: icon, color: iconColor),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+              ],
             ),
           ),
-          DropdownButton<String>(
+          Switch(
             value: value,
-            underline: const SizedBox(),
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            items: options
-                .map((o) => DropdownMenuItem(value: o, child: Text(o)))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) onChanged(v);
-            },
+            onChanged: onChanged,
+            activeColor: AppColors.green,
           ),
         ],
       ),

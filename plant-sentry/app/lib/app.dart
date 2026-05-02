@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/startup_loading_screen.dart';
 import 'theme/app_colors.dart';
 
-class PlantCareApp extends StatelessWidget {
+class PlantCareApp extends StatefulWidget {
   const PlantCareApp({super.key});
+
+  @override
+  State<PlantCareApp> createState() => _PlantCareAppState();
+}
+
+class _PlantCareAppState extends State<PlantCareApp> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  void _handleThemeModeChanged(ThemeMode mode) {
+    setState(() => _themeMode = mode);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +38,11 @@ class PlantCareApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      themeMode: _themeMode,
+      home: StartupLoadingScreen(
+        themeMode: _themeMode,
+        onThemeModeChanged: _handleThemeModeChanged,
+      ),
     );
   }
 }

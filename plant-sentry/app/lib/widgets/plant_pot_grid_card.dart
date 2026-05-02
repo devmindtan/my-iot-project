@@ -14,7 +14,10 @@ class PlantPotGridCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final dense = width < 175;
+        final height = constraints.maxHeight;
+        final compactHeight = height.isFinite && height < 140;
+        final ultraCompact = height.isFinite && height < 124;
+        final dense = width < 175 || compactHeight;
         final roomy = width >= 210;
         final padding = roomy
             ? 12.0
@@ -63,7 +66,7 @@ class PlantPotGridCard extends StatelessWidget {
               padding: EdgeInsets.all(padding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   Row(
                     children: [
@@ -91,7 +94,7 @@ class PlantPotGridCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: dense ? 3 : 4),
+                  if (!ultraCompact) SizedBox(height: dense ? 3 : 4),
                   Row(
                     children: [
                       Icon(
@@ -113,7 +116,7 @@ class PlantPotGridCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: dense ? 5 : 6),
+                  SizedBox(height: dense ? 4 : 6),
                   Row(
                     children: [
                       Icon(
@@ -146,46 +149,58 @@ class PlantPotGridCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: dense ? 3 : 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.thermostat_outlined,
-                        size: iconSize,
-                        color: Colors.orange.shade400,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${pot.temperature}°',
-                        style: TextStyle(
-                          fontSize: bodySize,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      SizedBox(width: dense ? 6 : 8),
-                      Icon(
-                        Icons.wb_sunny_outlined,
-                        size: iconSize,
-                        color: Colors.amber.shade600,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${pot.lightLevel.toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: bodySize,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      if (pot.autoWaterEnabled) ...[
-                        const Spacer(),
+                  if (!ultraCompact) ...[
+                    SizedBox(height: dense ? 3 : 4),
+                    Row(
+                      children: [
                         Icon(
-                          Icons.autorenew,
-                          size: roomy ? 14 : 12,
-                          color: Colors.blue.shade400,
+                          Icons.thermostat_outlined,
+                          size: iconSize,
+                          color: Colors.orange.shade400,
                         ),
+                        const SizedBox(width: 2),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Text(
+                            '${pot.temperature}°',
+                            style: TextStyle(
+                              fontSize: bodySize,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(width: dense ? 4 : 8),
+                        Icon(
+                          Icons.wb_sunny_outlined,
+                          size: iconSize,
+                          color: Colors.amber.shade600,
+                        ),
+                        const SizedBox(width: 2),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Text(
+                            '${pot.lightLevel.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: bodySize,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (pot.autoWaterEnabled) ...[
+                          const Spacer(),
+                          Icon(
+                            Icons.autorenew,
+                            size: roomy ? 14 : 12,
+                            color: Colors.blue.shade400,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -24,9 +24,9 @@ int _gridColsFor(double width) {
 double _gridMainAxisExtentFor(double width, int cols) {
   if (cols <= 1) return 150;
   if (cols == 2) return width < 390 ? 135 : 140;
-  if (cols == 3) return 150;
-  if (cols == 4) return 155;
-  return 160;
+  if (cols == 3) return 170;
+  if (cols == 4) return 170;
+  return 180;
 }
 
 double _dashboardAppBarHeightFor(double width) {
@@ -75,8 +75,14 @@ extension _FilterTabExt on _FilterTab {
 class DashboardScreen extends StatefulWidget {
   final List<PlantPot> pots;
   final ValueChanged<PlantPot>? onPotAdded;
+  final VoidCallback? onRefresh;
 
-  const DashboardScreen({super.key, required this.pots, this.onPotAdded});
+  const DashboardScreen({
+    super.key,
+    required this.pots,
+    this.onPotAdded,
+    this.onRefresh,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -153,237 +159,240 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      body: CustomScrollView(
-        slivers: [
-          // ── App bar ──────────────────────────────────────────────
-          SliverAppBar(
-            expandedHeight: appBarHeight,
-            pinned: true,
-            floating: false,
-            elevation: 0,
-            backgroundColor: AppColors.darkGreen,
-            foregroundColor: Colors.white,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🌱', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 6),
-                const Text(
-                  'PlantSense',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                if (alertCount > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 18,
-                    height: 18,
-                    decoration: const BoxDecoration(
-                      color: AppColors.red,
-                      shape: BoxShape.circle,
+      body: RefreshIndicator(
+        onRefresh: () async => widget.onRefresh?.call(),
+        child: CustomScrollView(
+          slivers: [
+            // ── App bar ──────────────────────────────────────────────
+            SliverAppBar(
+              expandedHeight: appBarHeight,
+              pinned: true,
+              floating: false,
+              elevation: 0,
+              backgroundColor: AppColors.darkGreen,
+              foregroundColor: Colors.white,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🌱', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'PlantSense',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    child: Center(
-                      child: Text(
-                        '$alertCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                  ),
+                  if (alertCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: AppColors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$alertCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
+              ),
+              actions: [
+                _NotificationButton(
+                  alertCount: alertCount,
+                  onPressed: _openNotifications,
+                ),
+                const _SettingsButton(),
+                const SizedBox(width: 4),
               ],
-            ),
-            actions: [
-              _NotificationButton(
-                alertCount: alertCount,
-                onPressed: _openNotifications,
-              ),
-              const _SettingsButton(),
-              const SizedBox(width: 4),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              collapseMode: CollapseMode.pin,
-              background: _DashboardHeader(alertCount: alertCount),
-            ),
-          ),
-
-          // ── Summary row ──────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _centerContent(
-              maxWidth: contentMaxWidth,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: SummaryRow(pots: widget.pots),
+              flexibleSpace: FlexibleSpaceBar(
+                collapseMode: CollapseMode.pin,
+                background: _DashboardHeader(alertCount: alertCount),
               ),
             ),
-          ),
 
-          // ── Alert banner (conditional) ───────────────────────────
-          if (alertCount > 0)
+            // ── Summary row ──────────────────────────────────────────
             SliverToBoxAdapter(
               child: _centerContent(
                 maxWidth: contentMaxWidth,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: AlertBanner(
-                    count: alertCount,
-                    onViewTap: () => setState(() {
-                      _activeFilter = _FilterTab.needsWater;
-                      _searchQuery = '';
-                      _searchController.clear();
-                    }),
-                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: SummaryRow(pots: widget.pots),
                 ),
               ),
             ),
 
-          // ── Search bar ───────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _centerContent(
-              maxWidth: contentMaxWidth,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm chậu, loại cây, vị trí...',
-                    hintStyle: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade400,
+            // ── Alert banner (conditional) ───────────────────────────
+            if (alertCount > 0)
+              SliverToBoxAdapter(
+                child: _centerContent(
+                  maxWidth: contentMaxWidth,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: AlertBanner(
+                      count: alertCount,
+                      onViewTap: () => setState(() {
+                        _activeFilter = _FilterTab.needsWater;
+                        _searchQuery = '';
+                        _searchController.clear();
+                      }),
                     ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.grey.shade400,
-                      size: 20,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              size: 18,
-                              color: Colors.grey.shade400,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 0,
-                      horizontal: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppColors.green,
-                        width: 1.5,
+                  ),
+                ),
+              ),
+
+            // ── Search bar ───────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: _centerContent(
+                maxWidth: contentMaxWidth,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm chậu, loại cây, vị trí...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade400,
                       ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ── Filter chips + view toggle ───────────────────────────
-          SliverToBoxAdapter(
-            child: _centerContent(
-              maxWidth: contentMaxWidth,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: _FilterTab.values
-                              .map(
-                                (tab) => Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: _FilterChip(
-                                    tab: tab,
-                                    isActive: _activeFilter == tab,
-                                    count: _countForTab(tab),
-                                    onTap: () =>
-                                        setState(() => _activeFilter = tab),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey.shade400,
+                        size: 20,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.clear,
+                                size: 18,
+                                color: Colors.grey.shade400,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 0,
+                        horizontal: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.green,
+                          width: 1.5,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _ViewToggle(
-                      isGrid: _isGridView,
-                      onToggle: () =>
-                          setState(() => _isGridView = !_isGridView),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // ── Section title + add button ───────────────────────────
-          SliverToBoxAdapter(
-            child: _centerContent(
-              maxWidth: contentMaxWidth,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-                child: Row(
-                  children: [
-                    Text(
-                      _sectionTitle,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
+            // ── Filter chips + view toggle ───────────────────────────
+            SliverToBoxAdapter(
+              child: _centerContent(
+                maxWidth: contentMaxWidth,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _FilterTab.values
+                                .map(
+                                  (tab) => Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: _FilterChip(
+                                      tab: tab,
+                                      isActive: _activeFilter == tab,
+                                      count: _countForTab(tab),
+                                      onTap: () =>
+                                          setState(() => _activeFilter = tab),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: _navigateToAdd,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text(
-                        'Thêm chậu',
-                        style: TextStyle(fontSize: 13),
+                      const SizedBox(width: 8),
+                      _ViewToggle(
+                        isGrid: _isGridView,
+                        onToggle: () =>
+                            setState(() => _isGridView = !_isGridView),
                       ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.green,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // ── Pot content (grid / list / location-grouped) ─────────
-          ...potSlivers,
+            // ── Section title + add button ───────────────────────────
+            SliverToBoxAdapter(
+              child: _centerContent(
+                maxWidth: contentMaxWidth,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        _sectionTitle,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: _navigateToAdd,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text(
+                          'Thêm chậu',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
-          // ── Bottom padding for FAB ───────────────────────────────
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+            // ── Pot content (grid / list / location-grouped) ─────────
+            ...potSlivers,
+
+            // ── Bottom padding for FAB ───────────────────────────────
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToAdd,

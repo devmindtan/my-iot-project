@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/sample_data.dart';
+import '../data/backend_api.dart';
 import '../models/plant_pot.dart';
 import '../theme/app_colors.dart';
 import 'dashboard_screen.dart';
@@ -8,7 +8,16 @@ import 'notifications_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final List<PlantPot> initialPots;
+
+  const HomeScreen({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    required this.initialPots,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -16,7 +25,28 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  List<PlantPot> pots = List.from(samplePots);
+  List<PlantPot> _pots = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _pots = List<PlantPot>.from(widget.initialPots);
+  }
+
+  Future<void> _refreshPots() async {
+    try {
+      final apiPots = await BackendApi.fetchDashboard();
+      if (!mounted) return;
+      setState(() {
+        _pots = apiPots.map((pot) => pot.toPlantPot()).toList();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Khong the tai dashboard: $e')));
+    }
+  }
 
   void _onNavTap(int index) {
     setState(() => _selectedIndex = index);
@@ -102,8 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (_selectedIndex) {
       case 0:
         return DashboardScreen(
-          pots: pots,
-          onPotAdded: (newPot) => setState(() => pots = [...pots, newPot]),
+          pots: _pots,
+          onPotAdded: (newPot) => setState(() => _pots = [..._pots, newPot]),
+          onRefresh: _refreshPots,
         );
       case 1:
         return _buildComingSoon(
@@ -124,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Hệ thống AI phân tích dữ liệu cảm biến và đưa ra lời khuyên chăm sóc cây cá nhân hóa.',
         );
       default:
-        return DashboardScreen(pots: pots);
+        return DashboardScreen(pots: _pots);
     }
   }
 
@@ -134,11 +165,16 @@ class _HomeScreenState extends State<HomeScreen> {
       onGenerateRoute: (settings) {
         if (settings.name == '/notifications') {
           return MaterialPageRoute(
-            builder: (_) => NotificationsScreen(pots: pots),
+            builder: (_) => NotificationsScreen(pots: _pots),
           );
         }
         if (settings.name == '/settings') {
-          return MaterialPageRoute(builder: (_) => const SettingsScreen());
+          return MaterialPageRoute(
+            builder: (_) => SettingsScreen(
+              themeMode: widget.themeMode,
+              onThemeModeChanged: widget.onThemeModeChanged,
+            ),
+          );
         }
         return MaterialPageRoute(
           builder: (_) => Scaffold(

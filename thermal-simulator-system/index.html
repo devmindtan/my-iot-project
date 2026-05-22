@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bảng Định Lượng Hao Phí Năng Lượng & Bộ Mô Phỏng Nhiệt</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              physicsBlue: "#3b82f6",
+              physicsRed: "#ef4444",
+              physicsYellow: "#f59e0b",
+              physicsGreen: "#10b981",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Tùy chỉnh thanh trượt slider */
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ef4444;
+        cursor: pointer;
+        transition: background 0.15s ease-in-out;
+      }
+      input[type="range"]::-webkit-slider-thumb:hover {
+        background: #b91c1c;
+      }
+      /* Hiệu ứng phát sáng */
+      .glow-green {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+      }
+      .glow-yellow {
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+      }
+      .glow-orange {
+        box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
+      }
+      .glow-red {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+    <!-- Header -->
+    <header
+      class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4"
+      >
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-physicsRed/10 rounded-lg text-physicsRed">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">
+              Hệ Thống Phân Tích & Định Lượng Hao Phí Điện
+            </h1>
+            <p class="text-xs text-slate-400">
+              Hiểu về Watt (W), Joule (J), Nhiệt lượng và Sự va đập của hạt điện
+            </p>
+          </div>
+        </div>
+        <div
+          class="text-sm bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/50 flex items-center gap-2"
+        >
+          <span
+            class="inline-block w-2.5 h-2.5 rounded-full bg-physicsRed animate-ping"
+          ></span>
+          <span
+            >Công thức nền tảng:
+            <strong class="text-physicsYellow">1 W = 1 J/s</strong></span
+          >
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <!-- Grid 1: Mô phỏng tương tác và Phân tích trực tiếp -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Cột trái (8/12): Bộ mô phỏng điều khiển và Hình ảnh vi mô -->
+        <div
+          class="lg:col-span-7 bg-slate-900/60 rounded-2xl p-6 border border-slate-800/80 space-y-6"
+        >
+          <div class="flex items-center justify-between">
+            <h2
+              class="text-lg font-semibold text-slate-200 flex items-center gap-2"
+            >
+              <span class="w-2.5 h-2.5 rounded-full bg-physicsBlue"></span>
+              BỘ MÔ PHỎNG HAO PHÍ NHIỆT (JOULE HEATING)
+            </h2>
+            <span class="text-xs text-slate-400">Tương tác trực quan</span>
+          </div>
+
+          <!-- Thanh trượt điều khiển Watt -->
+          <div
+            class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4"
+          >
+            <div class="flex justify-between items-center">
+              <label for="wattSlider" class="text-sm text-slate-400 font-medium"
+                >Chọn công suất hao phí (&Delta;P):</label
+              >
+              <div class="text-right">
+                <span
+                  id="wattDisplay"
+                  class="text-3xl font-extrabold text-physicsRed"
+                  >50</span
+                >
+                <span class="text-lg font-bold text-slate-300"> W</span>
+                <span class="block text-xs text-slate-500"
+                  >(tương đương
+                  <span id="joulePerSec">50</span> Joule/giây)</span
+                >
+              </div>
+            </div>
+
+            <input
+              type="range"
+              id="wattSlider"
+              min="1"
+              max="1500"
+              value="50"
+              class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+            />
+
+            <!-- Các nút mẫu nhanh thiết bị thực tế -->
+            <div class="space-y-2">
+              <span class="text-xs text-slate-500 block"
+                >Chọn nhanh thiết bị thực tế:</span
+              >
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <button
+                  onclick="setWatt(3, 'Smartwatch / Tai nghe')"
+                  class="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition text-left flex flex-col justify-between"
+                >
+                  <span class="font-medium">Tai nghe BT / Smartwatch</span>
+                  <span class="text-physicsGreen font-bold mt-1"
+                    >3 W (Hao phí cực nhỏ)</span
+                  >
+                </button>
+                <button
+                  onclick="setWatt(15, 'Sạc laptop chuẩn')"
+                  class="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition text-left flex flex-col justify-between"
+                >
+                  <span class="font-medium">Cục sạc Laptop ấm</span>
+                  <span class="text-physicsYellow font-bold mt-1"
+                    >15 W (Trung bình thấp)</span
+                  >
+                </button>
+                <button
+                  onclick="setWatt(95, 'CPU / Đèn sợi đốt')"
+                  class="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition text-left flex flex-col justify-between"
+                >
+                  <span class="font-medium">CPU tải nặng / Đèn sợi đốt</span>
+                  <span class="text-physicsYellow font-bold mt-1"
+                    >95 W (Trung bình cao)</span
+                  >
+                </button>
+                <button
+                  onclick="setWatt(250, 'Bộ nguồn PC lớn')"
+                  class="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition text-left flex flex-col justify-between"
+                >
+                  <span class="font-medium">Bộ nguồn PC Gaming tỏa nhiệt</span>
+                  <span class="text-orange-400 font-bold mt-1"
+                    >250 W (Cao - Cần quạt lớn)</span
+                  >
+                </button>
+                <button
+                  onclick="setWatt(600, 'Bếp từ đơn nhỏ')"
+                  class="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition text-left flex flex-col justify-between"
+                >
+                  <span class="font-medium">Dây điện bị quá tải nhẹ</span>
+                  <span class="text-orange-500 font-bold mt-1"
+                    >600 W (Rất cao - Nguy hiểm)</span
+                  >
+                </button>
+                <button
+                  onclick="setWatt(1500, 'Chập điện chớp nhoáng')"
+                  class="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition text-left flex flex-col justify-between"
+                >
+                  <span class="font-medium">Đoản mạch / Chập điện</span>
+                  <span class="text-physicsRed font-bold mt-1"
+                    >1500+ W (Cực hạn - Nổ/Cháy)</span
+                  >
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Khung mô phỏng nguyên tử vật dẫn -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium text-slate-300"
+                >Mô phỏng vật lý ở cấp độ vi mô (Dây dẫn điện):</span
+              >
+              <span class="text-xs text-slate-500" id="microStateText"
+                >Trạng thái: Bình thường</span
+              >
+            </div>
+            <div
+              class="relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-60"
+            >
+              <canvas id="microCanvas" class="w-full h-full block"></canvas>
+              <!-- Ghi chú nhãn mô phỏng -->
+              <div
+                class="absolute bottom-2 left-2 flex gap-3 text-[10px] bg-slate-900/90 px-2 py-1 rounded border border-slate-800"
+              >
+                <span class="flex items-center gap-1"
+                  ><span
+                    class="w-2 h-2 rounded-full bg-red-500 inline-block"
+                  ></span>
+                  Nguyên tử kim loại (vật dẫn)</span
+                >
+                <span class="flex items-center gap-1"
+                  ><span
+                    class="w-2 h-2 rounded-full bg-blue-400 inline-block"
+                  ></span>
+                  Electron di chuyển (I)</span
+                >
+                <span class="flex items-center gap-1"
+                  ><span class="w-1.5 h-1.5 bg-yellow-400 inline-block"></span>
+                  Cú va chạm sinh nhiệt (Joule)</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cột phải (4/12): Bảng phân tích trạng thái năng lượng, tính Joule thực tế -->
+        <div
+          class="lg:col-span-5 bg-slate-900/60 rounded-2xl p-6 border border-slate-800/80 flex flex-col justify-between gap-6"
+        >
+          <div class="space-y-4">
+            <h2
+              class="text-lg font-semibold text-slate-200 flex items-center gap-2"
+            >
+              <span class="w-2.5 h-2.5 rounded-full bg-physicsRed"></span>
+              PHÂN TÍCH TRẠNG THÁI HIỆN TẠI
+            </h2>
+
+            <!-- Card Cảnh báo / Đánh giá -->
+            <div
+              id="statusCard"
+              class="p-5 rounded-xl border transition-all duration-300"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <span
+                  class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                  >CẤP ĐỘ HAO PHÍ</span
+                >
+                <span
+                  id="levelBadge"
+                  class="text-xs px-2.5 py-1 rounded-full font-bold"
+                  >...</span
+                >
+              </div>
+              <h3 id="levelTitle" class="text-xl font-black mb-2">...</h3>
+              <p id="levelDesc" class="text-sm text-slate-300 leading-relaxed">
+                ...
+              </p>
+            </div>
+
+            <!-- Card Giải pháp tản nhiệt -->
+            <div
+              class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2"
+            >
+              <h4
+                class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 text-physicsBlue"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                  />
+                </svg>
+                Giải pháp tản nhiệt khuyên dùng:
+              </h4>
+              <p id="coolingDesc" class="text-sm text-physicsBlue font-medium">
+                ...
+              </p>
+            </div>
+          </div>
+
+          <!-- Máy tính đo nhiệt lượng tích tụ -->
+          <div
+            class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3"
+          >
+            <span
+              class="text-xs font-bold text-slate-400 block uppercase tracking-wider"
+              >MÁY TÍNH NHIỆT TÍCH TỤ THEO THỜI GIAN</span
+            >
+
+            <div class="flex items-center justify-between gap-4">
+              <label class="text-sm text-slate-300"
+                >Nếu thiết bị chạy liên tục trong:</label
+              >
+              <div class="flex items-center gap-2">
+                <input
+                  type="number"
+                  id="timeInput"
+                  value="1"
+                  min="1"
+                  class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-bold text-slate-100 focus:outline-none focus:border-physicsRed"
+                />
+                <select
+                  id="timeUnit"
+                  class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none"
+                >
+                  <option value="60">Phút</option>
+                  <option value="3600" selected>Giờ</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Kết quả Joule tích tụ -->
+            <div class="pt-2 border-t border-slate-800 grid grid-cols-2 gap-4">
+              <div
+                class="bg-slate-900 p-2.5 rounded border border-slate-800 text-center"
+              >
+                <span class="text-[10px] text-slate-500 block"
+                  >TỔNG NHIỆT LƯỢNG (Q)</span
+                >
+                <span id="totalJoule" class="text-lg font-bold text-slate-200"
+                  >... J</span
+                >
+              </div>
+              <div
+                class="bg-slate-900 p-2.5 rounded border border-slate-800 text-center"
+              >
+                <span class="text-[10px] text-slate-500 block"
+                  >QUY ĐỔI SANG CALO</span
+                >
+                <span
+                  id="totalCalorie"
+                  class="text-lg font-bold text-physicsYellow"
+                  >... cal</span
+                >
+              </div>
+            </div>
+            <span class="text-[10px] text-slate-500 block text-center italic"
+              >*Tính dựa trên công thức Q = &Delta;P &times; t và 1 Joule
+              &approx; 0.24 Calo</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Bảng định lượng chi tiết - Yêu cầu chính của người dùng -->
+      <section
+        class="bg-slate-900/60 rounded-2xl p-6 border border-slate-800/80 space-y-4"
+      >
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-physicsYellow"></span>
+          <h2 class="text-xl font-bold text-slate-100">
+            BẢNG ĐỊNH LƯỢNG MỨC ĐỘ HAO PHÍ NĂNG LƯỢNG
+          </h2>
+        </div>
+        <p class="text-sm text-slate-400">
+          Bảng đối chiếu chuẩn giữa số Watt hao phí (Joule sinh ra trong mỗi
+          giây), biểu hiện nhiệt động học thực tế của thiết bị, và các biện pháp
+          can thiệp kỹ thuật.
+        </p>
+
+        <div
+          class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950"
+        >
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr
+                class="bg-slate-900 text-slate-300 border-b border-slate-800 text-xs uppercase tracking-wider font-semibold"
+              >
+                <th class="p-4 w-1/12 text-center">Cấp độ</th>
+                <th class="p-4 w-2/12">Khoảng công suất hao phí</th>
+                <th class="p-4 w-3/12">Cảm nhận & Biểu hiện vật lý</th>
+                <th class="p-4 w-3/12">Ví dụ thực tế điển hình</th>
+                <th class="p-4 w-3/12">Yêu cầu tản nhiệt / Xử lý an toàn</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-900/60">
+              <tr class="hover:bg-slate-900/30 transition">
+                <td class="p-4 text-center">
+                  <span
+                    class="inline-block px-2 py-1 rounded bg-physicsGreen/10 text-physicsGreen text-xs font-bold"
+                    >Mức 1</span
+                  >
+                </td>
+                <td class="p-4">
+                  <div class="font-bold text-slate-100">&lt; 10 J/s</div>
+                  <div class="text-xs text-slate-500">(Dưới 10 Watt)</div>
+                </td>
+                <td class="p-4 text-slate-300">
+                  Mát rượi hoặc chỉ hơi ấm nhẹ khi chạm lâu. Lượng nhiệt cực kỳ
+                  nhỏ, tự phát tán ngay ra không khí.
+                </td>
+                <td class="p-4">
+                  <ul
+                    class="list-disc list-inside text-xs text-slate-400 space-y-1"
+                  >
+                    <li>Đồng hồ thông minh (vài mW)</li>
+                    <li>Cục sạc khi pin điện thoại gần đầy</li>
+                    <li>Đèn LED trang trí siêu nhỏ</li>
+                  </ul>
+                </td>
+                <td class="p-4 text-xs text-physicsGreen font-medium">
+                  Không cần tản nhiệt chủ động. Nhiệt tự thoát qua vỏ ngoài của
+                  thiết bị mà không lo biến dạng hay giảm thọ.
+                </td>
+              </tr>
+
+              <tr class="hover:bg-slate-900/30 transition">
+                <td class="p-4 text-center">
+                  <span
+                    class="inline-block px-2 py-1 rounded bg-physicsYellow/10 text-physicsYellow text-xs font-bold"
+                    >Mức 2</span
+                  >
+                </td>
+                <td class="p-4">
+                  <div class="font-bold text-slate-100">10 &ndash; 100 J/s</div>
+                  <div class="text-xs text-slate-500">(10W - 100 Watt)</div>
+                </td>
+                <td class="p-4 text-slate-300">
+                  Ấm đến nóng rõ rệt. Nếu tích tụ trong không gian kín mà không
+                  có tản nhiệt, linh kiện sẽ tăng lên 60&deg;C - 80&deg;C, chạm
+                  vào có thể giật mình hoặc bỏng nhẹ.
+                </td>
+                <td class="p-4">
+                  <ul
+                    class="list-disc list-inside text-xs text-slate-400 space-y-1"
+                  >
+                    <li>Cục sạc laptop cỡ lớn (~20W hao phí)</li>
+                    <li>Chip CPU/GPU máy tính khi chơi game</li>
+                    <li>Mỏ hàn chì cỡ nhỏ khi đang nung</li>
+                  </ul>
+                </td>
+                <td class="p-4 text-xs text-physicsYellow font-medium">
+                  **Bắt buộc dùng tản nhiệt khí**: Gắn khối nhôm, ống dẫn đồng,
+                  hoặc keo dẫn nhiệt và quạt thổi khí lưu động liên tục để tránh
+                  cháy hỏng chíp.
+                </td>
+              </tr>
+
+              <tr class="hover:bg-slate-900/30 transition">
+                <td class="p-4 text-center">
+                  <span
+                    class="inline-block px-2 py-1 rounded bg-orange-500/10 text-orange-400 text-xs font-bold"
+                    >Mức 3</span
+                  >
+                </td>
+                <td class="p-4">
+                  <div class="font-bold text-slate-100">
+                    100 &ndash; 1.000 J/s
+                  </div>
+                  <div class="text-xs text-slate-500">(100W - 1kW)</div>
+                </td>
+                <td class="p-4 text-slate-300">
+                  Nhiệt độ cực cao. Chạm vào sẽ gây bỏng nặng ngay lập tức. Đủ
+                  khả năng làm nóng chảy nhựa thông thường, đốt cháy giấy, vải
+                  nếu tiếp xúc trực tiếp trong thời gian ngắn.
+                </td>
+                <td class="p-4">
+                  <ul
+                    class="list-disc list-inside text-xs text-slate-400 space-y-1"
+                  >
+                    <li>Bóng đèn sợi đốt 100W hoạt động</li>
+                    <li>
+                      Đoạn dây điện bị quá tải do cắm quá nhiều đồ bếp từ, điều
+                      hòa
+                    </li>
+                    <li>Mặt đế bàn là quần áo</li>
+                  </ul>
+                </td>
+                <td class="p-4 text-xs text-orange-400 font-medium">
+                  Phải sử dụng vật liệu chịu nhiệt đặc biệt (gốm, sợi thủy
+                  tinh), dùng quạt tản nhiệt công suất lớn hoặc **tản nhiệt chất
+                  lỏng tuần hoàn**. Dây điện phải dùng lõi dày.
+                </td>
+              </tr>
+
+              <tr class="hover:bg-slate-900/30 transition">
+                <td class="p-4 text-center">
+                  <span
+                    class="inline-block px-2 py-1 rounded bg-physicsRed/10 text-physicsRed text-xs font-bold"
+                    >Mức 4</span
+                  >
+                </td>
+                <td class="p-4">
+                  <div class="font-bold text-slate-100">&gt; 1.000 J/s</div>
+                  <div class="text-xs text-slate-500">(Trên 1kW)</div>
+                </td>
+                <td class="p-4 text-slate-300 text-physicsRed font-medium">
+                  Cấp độ hủy diệt hoặc công nghiệp siêu nặng. Sinh nhiệt hóa
+                  lỏng đồng, sắt thép chỉ trong vài giây. Tạo ra luồng hồ quang
+                  phóng điện nguy hiểm.
+                </td>
+                <td class="p-4">
+                  <ul
+                    class="list-disc list-inside text-xs text-slate-400 space-y-1"
+                  >
+                    <li>Sự cố **đoản mạch (chập mạch điện)**</li>
+                    <li>Hồ quang của máy hàn điện công nghiệp</li>
+                    <li>Lò luyện kim bằng dòng cảm ứng</li>
+                  </ul>
+                </td>
+                <td class="p-4 text-xs text-physicsRed font-medium">
+                  Bắt buộc có hệ thống ngắt tự động (Aptomat/Cầu chì nhảy cực
+                  nhanh trong mili-giây). Người dùng phải mặc đồ bảo hộ chống
+                  cháy, mặt nạ hàn chuyên nghiệp.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section 3: Góc kiến thức & Ôn tập nhanh -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div
+          class="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 space-y-2"
+        >
+          <span
+            class="text-physicsBlue text-xs font-bold uppercase tracking-wider"
+            >ĐỊNH LUẬT OHM CƠ BẢN</span
+          >
+          <div class="text-xl font-mono text-slate-200">I = U / R</div>
+          <p class="text-xs text-slate-400">
+            Áp thế U (Volt) đẩy dòng chảy. Vật cản R (Ohm) cản lại. Kết quả sinh
+            ra dòng điện I (Ampere) chảy qua thiết bị.
+          </p>
+        </div>
+        <div
+          class="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 space-y-2"
+        >
+          <span
+            class="text-physicsYellow text-xs font-bold uppercase tracking-wider"
+            >HIỆU ỨNG NHIỆT JOULE-LENZ</span
+          >
+          <div class="text-xl font-mono text-slate-200">
+            &Delta;P = I² &times; R
+          </div>
+          <p class="text-xs text-slate-400">
+            Nhiệt hao phí sinh ra tỉ lệ thuận với **bình phương dòng điện**. Chỉ
+            cần dòng điện I tăng gấp đôi, nhiệt hao phí sẽ vọt lên gấp bốn!
+          </p>
+        </div>
+        <div
+          class="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 space-y-2"
+        >
+          <span
+            class="text-physicsRed text-xs font-bold uppercase tracking-wider"
+            >TÍNH TOÁN NHIỆT LƯỢNG TÍCH TỤ</span
+          >
+          <div class="text-xl font-mono text-slate-200">
+            Q = &Delta;P &times; t
+          </div>
+          <p class="text-xs text-slate-400">
+            Tổng nhiệt tích tụ bằng công suất hao phí nhân với số giây hoạt
+            động. Nhiệt này sẽ nung nóng linh kiện nếu không được tản mát.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer
+      class="bg-slate-950 py-8 text-center text-xs text-slate-500 border-t border-slate-900"
+    >
+      <p>
+        &copy; 2026 Hệ Thống Phân Tích & Giáo Dục Vật Lý Điện. Bản quyền được
+        bảo lưu.
+      </p>
+      <p class="mt-2 text-slate-600">
+        Được phát triển nhằm đơn giản hóa khái niệm Volt, Ampere, Ohm, Watt và
+        Joule.
+      </p>
+    </footer>
+
+    <!-- Script điều khiển Logic tương tác -->
+    <script>
+      const wattSlider = document.getElementById("wattSlider");
+      const wattDisplay = document.getElementById("wattDisplay");
+      const joulePerSec = document.getElementById("joulePerSec");
+      const statusCard = document.getElementById("statusCard");
+      const levelBadge = document.getElementById("levelBadge");
+      const levelTitle = document.getElementById("levelTitle");
+      const levelDesc = document.getElementById("levelDesc");
+      const coolingDesc = document.getElementById("coolingDesc");
+      const timeInput = document.getElementById("timeInput");
+      const timeUnit = document.getElementById("timeUnit");
+      const totalJoule = document.getElementById("totalJoule");
+      const totalCalorie = document.getElementById("totalCalorie");
+      const microStateText = document.getElementById("microStateText");
+
+      // Đối tượng cấu hình cho các mức độ hao phí
+      const levels = [
+        {
+          min: 0,
+          max: 10,
+          name: "Cấp độ 1: Siêu Thấp",
+          title: "AN TOÀN TUYỆT ĐỐI",
+          desc: "Lượng nhiệt sinh ra cực kỳ nhỏ, tự phát tán ngay ra không khí xung quanh mà không cần hỗ trợ. Thiết bị chạy mát mẻ hoặc hơi ấm nhẹ sau nhiều tiếng.",
+          cooling:
+            "Tự tỏa nhiệt tự nhiên qua lớp vỏ mỏng. Không cần bất cứ cánh tản nhiệt hay quạt nào.",
+          badgeClass:
+            "bg-physicsGreen/20 text-physicsGreen border border-physicsGreen/30",
+          cardClass:
+            "bg-physicsGreen/5 border-physicsGreen/20 text-physicsGreen glow-green",
+          vibrationScale: 1, // Độ rung của nguyên tử trong mô phỏng
+          electronSpeed: 1, // Tốc độ electron
+        },
+        {
+          min: 10.1,
+          max: 100,
+          name: "Cấp độ 2: Trung Bình",
+          title: "NÓNG RÕ RỆT (CẦN TẢN NHIỆT)",
+          desc: "Linh kiện sẽ nóng lên thấy rõ. Nếu bọc kín trong hộp nhựa mà không cho lưu thông gió, nhiệt độ tích tụ sẽ nhanh chóng vượt ngưỡng an toàn, gây hại và làm giảm thọ chíp điện tử.",
+          cooling:
+            "Bắt buộc gắn thanh nhôm tản nhiệt thụ động, bổ sung quạt gió nhỏ thổi tuần hoàn (giống bộ phận làm mát trong laptop, CPU PC).",
+          badgeClass:
+            "bg-physicsYellow/20 text-physicsYellow border border-physicsYellow/30",
+          cardClass:
+            "bg-physicsYellow/5 border-physicsYellow/20 text-physicsYellow glow-yellow",
+          vibrationScale: 2.5,
+          electronSpeed: 2,
+        },
+        {
+          min: 100.1,
+          max: 1000,
+          name: "Cấp độ 3: Rất Cao",
+          title: "NÓNG BỎNG (NGUY HIỂM KHI TIẾP XÚC CHẠM)",
+          desc: "Nhiệt tỏa ra cực kỳ nóng và dồi dào. Có thể nung chảy dây nhựa loại yếu, gây cháy giấy/vải nếu chạm sát. Chạm tay vào linh kiện có thể bị bỏng phồng da ngay.",
+          cooling:
+            "Cần lá nhôm tản nhiệt dày, quạt công suất lớn hoặc khối tản nhiệt nước (chất lỏng tuần hoàn) để hút nóng liên tục.",
+          badgeClass:
+            "bg-orange-500/20 text-orange-400 border border-orange-500/30",
+          cardClass:
+            "bg-orange-500/5 border-orange-500/20 text-orange-400 glow-orange",
+          vibrationScale: 5,
+          electronSpeed: 4,
+        },
+        {
+          min: 1000.1,
+          max: 1500,
+          name: "Cấp độ 4: Cực Hạn",
+          title: "NGUY HIỂM CHÁY NỔ / HỦY DIỆT",
+          desc: "Đây là mức năng lượng cực hạn trong tích tắc (phổ biến nhất khi chập cháy điện). Lượng nhiệt khổng lồ sẽ nung đỏ và làm nóng chảy dây đồng, phóng ra luồng hồ quang sáng lóa gây cháy nổ.",
+          cooling:
+            "Không thể tản nhiệt thông thường! Yêu cầu hệ thống ngắt tự động (Aptomat/Cầu chì) nhảy ngay lập tức để bảo vệ tính mạng con người.",
+          badgeClass:
+            "bg-physicsRed/20 text-physicsRed border border-physicsRed/30",
+          cardClass:
+            "bg-physicsRed/10 border-physicsRed/20 text-physicsRed glow-red",
+          vibrationScale: 9,
+          electronSpeed: 6.5,
+        },
+      ];
+
+      // Hàm cập nhật phân tích dựa trên số Watt
+      function updateAnalysis(watt) {
+        wattDisplay.textContent = watt;
+        joulePerSec.textContent = watt;
+
+        // Tìm cấp độ tương ứng
+        const level = levels.find((l) => watt >= l.min && watt <= l.max);
+
+        if (level) {
+          // Cập nhật giao diện phân tích
+          levelBadge.textContent = level.name;
+          levelBadge.className = `text-xs px-2.5 py-1 rounded-full font-bold ${level.badgeClass}`;
+
+          levelTitle.textContent = level.title;
+          levelDesc.textContent = level.desc;
+          coolingDesc.textContent = level.cooling;
+
+          statusCard.className = `p-5 rounded-xl border transition-all duration-300 ${level.cardClass}`;
+
+          microStateText.textContent = `Trạng thái mô phỏng: ${level.name.split(":")[1].trim()}`;
+          if (watt > 1000) {
+            microStateText.className =
+              "text-xs font-bold text-physicsRed animate-pulse";
+          } else {
+            microStateText.className = "text-xs text-slate-400";
+          }
+        }
+
+        // Tính toán nhiệt lượng tích tụ
+        calculateHeat(watt);
+      }
+
+      // Hàm tính toán nhiệt lượng
+      function calculateHeat(watt) {
+        const timeVal = parseFloat(timeInput.value) || 0;
+        const unitMultiplier = parseInt(timeUnit.value) || 1;
+        const seconds = timeVal * unitMultiplier;
+
+        // Q = P * t
+        const joules = watt * seconds;
+
+        // Định dạng hiển thị số lớn thân thiện
+        if (joules >= 1000000) {
+          totalJoule.textContent = `${(joules / 1000000).toFixed(2)} MJ`;
+        } else if (joules >= 1000) {
+          totalJoule.textContent = `${(joules / 1000).toFixed(2)} kJ`;
+        } else {
+          totalJoule.textContent = `${joules.toLocaleString()} J`;
+        }
+
+        // 1 Joule = 0.24 cal
+        const calories = joules * 0.24;
+        if (calories >= 1000000) {
+          totalCalorie.textContent = `${(calories / 1000000).toFixed(2)} Mcal`;
+        } else if (calories >= 1000) {
+          totalCalorie.textContent = `${(calories / 1000).toFixed(2)} kcal`;
+        } else {
+          totalCalorie.textContent = `${Math.round(calories).toLocaleString()} cal`;
+        }
+      }
+
+      // Hàm click nhanh thiết bị mẫu
+      function setWatt(val, deviceName) {
+        wattSlider.value = val;
+        updateAnalysis(val);
+      }
+
+      // Sự kiện thay đổi thanh trượt
+      wattSlider.addEventListener("input", (e) => {
+        updateAnalysis(parseInt(e.target.value));
+      });
+
+      // Sự kiện thay đổi bộ đếm thời gian
+      timeInput.addEventListener("input", () => {
+        calculateHeat(parseInt(wattSlider.value));
+      });
+      timeUnit.addEventListener("change", () => {
+        calculateHeat(parseInt(wattSlider.value));
+      });
+
+      // ----------------- MÔ PHỎNG CANVAS VẬT LÝ VI MÔ -----------------
+      const canvas = document.getElementById("microCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Điều chỉnh kích thước canvas phù hợp với thẻ chứa
+      function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      }
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+
+      // Cấu trúc đối tượng hạt điện (Electrons) và mạng nguyên tử
+      const atoms = [];
+      const electrons = [];
+      const particles = []; // Hạt lửa bắn ra khi va chạm
+
+      // Khởi tạo các nguyên tử đồng định vị cố định (vàng nhạt hoặc đỏ)
+      const rows = 3;
+      const cols = 6;
+      function initAtoms() {
+        atoms.length = 0;
+        const xSpacing = canvas.width / (cols + 1);
+        const ySpacing = canvas.height / (rows + 1);
+
+        for (let r = 1; r <= rows; r++) {
+          for (let c = 1; c <= cols; c++) {
+            atoms.push({
+              origX: c * xSpacing,
+              origY: r * ySpacing,
+              x: c * xSpacing,
+              y: r * ySpacing,
+              radius: 12,
+              hitReaction: 0, // Hiệu ứng đỏ lên khi bị đâm
+            });
+          }
+        }
+      }
+
+      // Khởi tạo một số lượng Electron chạy liên tục từ trái qua phải
+      const maxElectrons = 15;
+      function initElectrons() {
+        electrons.length = 0;
+        for (let i = 0; i < maxElectrons; i++) {
+          electrons.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * (canvas.height - 20) + 10,
+            radius: 3.5,
+            speed: Math.random() * 1.5 + 1,
+          });
+        }
+      }
+
+      // Khởi tạo ban đầu cho canvas
+      setTimeout(() => {
+        resizeCanvas();
+        initAtoms();
+        initElectrons();
+      }, 100);
+
+      // Vòng lặp vẽ và cập nhật hoạt cảnh
+      function animate() {
+        if (!canvas.width || !canvas.height) {
+          requestAnimationFrame(animate);
+          return;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const curWatt = parseInt(wattSlider.value);
+        const level =
+          levels.find((l) => curWatt >= l.min && curWatt <= l.max) || levels[0];
+
+        // 1. Vẽ nền mô phỏng chuyển đỏ/cam nhẹ dựa vào mức Watt
+        const redGlowIntensity = Math.min(0.5, curWatt / 1800);
+        ctx.fillStyle = `rgba(239, 68, 68, ${redGlowIntensity * 0.25})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Cập nhật và Vẽ các Nguyên tử (Rung rinh theo nhiệt độ)
+        atoms.forEach((atom) => {
+          // Khi Watt càng cao, độ rung rinh (nhiệt độ) càng lớn
+          const vibe = level.vibrationScale * (Math.random() - 0.5) * 1.3;
+          atom.x = atom.origX + vibe;
+          atom.y = atom.origY + vibe;
+
+          if (atom.hitReaction > 0) atom.hitReaction -= 0.1; // Giảm dần đỏ rực
+
+          // Đổi màu nguyên tử dựa trên mức Watt và va chạm
+          let redVal = Math.min(
+            255,
+            100 + curWatt * 0.15 + atom.hitReaction * 150,
+          );
+          let greenVal = Math.max(20, 100 - curWatt * 0.08);
+          let blueVal = Math.max(20, 100 - curWatt * 0.1);
+
+          ctx.beginPath();
+          ctx.arc(atom.x, atom.y, atom.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgb(${redVal}, ${greenVal}, ${blueVal})`;
+          ctx.shadowBlur = atom.hitReaction * 10;
+          ctx.shadowColor = "rgba(245, 158, 11, 0.8)";
+          ctx.fill();
+          ctx.shadowBlur = 0; // reset shadow
+
+          // Viền nguyên tử
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        // 3. Cập nhật và vẽ Electron di chuyển xuyên suốt
+        electrons.forEach((el) => {
+          // Di chuyển từ trái sang phải
+          el.x += el.speed * level.electronSpeed;
+
+          // Nếu chạy quá màn hình, trả lại về bên trái để lặp lại
+          if (el.x > canvas.width) {
+            el.x = -5;
+            el.y = Math.random() * (canvas.height - 20) + 10;
+          }
+
+          // Kiểm tra va chạm giữa electron này với các nguyên tử đồng
+          atoms.forEach((atom) => {
+            const dist = Math.hypot(el.x - atom.x, el.y - atom.y);
+            if (dist < atom.radius + el.radius) {
+              // Kích hoạt phản ứng phát sáng của nguyên tử
+              atom.hitReaction = 1.0;
+
+              // Bắn ra các mạt lửa nhỏ (Joule sinh nhiệt)
+              const particleCount = Math.floor(curWatt / 200) + 1;
+              for (let k = 0; k < particleCount; k++) {
+                particles.push({
+                  x: el.x,
+                  y: el.y,
+                  vx: (Math.random() - 0.5) * 4,
+                  vy: (Math.random() - 0.5) * 4,
+                  alpha: 1.0,
+                  size: Math.random() * 2.5 + 1,
+                });
+              }
+
+              // Electron bị nảy nhẹ để thể hiện sự va đập đổi hướng
+              el.x += (Math.random() - 0.5) * 5;
+              el.y += (Math.random() - 0.5) * 15;
+            }
+          });
+
+          // Vẽ Electron
+          ctx.beginPath();
+          ctx.arc(el.x, el.y, el.radius, 0, Math.PI * 2);
+          ctx.fillStyle = "#60a5fa"; // Màu xanh da trời sáng
+          // Vẽ đuôi sáng nhỏ
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = "#60a5fa";
+          ctx.fill();
+          ctx.shadowBlur = 0; // reset
+        });
+
+        // 4. Vẽ các hạt mạt lửa nhiệt lượng (Nhiệt năng thất thoát)
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= 0.05; // Mờ dần rất nhanh
+
+          if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(245, 158, 11, ${p.alpha})`; // Màu lửa cam
+          ctx.fill();
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      // Chạy vòng lặp mô phỏng
+      animate();
+
+      // Khởi động phân tích trạng thái ban đầu (50W)
+      updateAnalysis(50);
+    </script>
+  </body>
+</html>
